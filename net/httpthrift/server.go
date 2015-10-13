@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"github.com/dt/go-metrics-reporting"
+	"github.com/foursquare/fsgo/report"
 )
 
 // Thrift's generated Processors have `GetProcessorFunction` and satisfy this interface.

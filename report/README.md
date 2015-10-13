@@ -1,6 +1,6 @@
 # Metrics Reporting Helper
 
-A thin wrapper around [go-metrics](github.com/rcrowley/go-metrics) and [go-metrics-graphite](github.com/dt/go-metrics-graphite) that streamlines setup and a few common uses (tracking event rates and timings).
+A thin wrapper around [go-metrics](github.com/rcrowley/go-metrics) and [go-metrics-graphite](github.com/foursquare/go-metrics-graphite) that streamlines setup and a few common uses (tracking event rates and timings).
 
 ## Usage
 

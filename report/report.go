@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dt/go-metrics"
-	"github.com/dt/go-metrics-graphite"
+	"github.com/foursquare/go-metrics"
+	"github.com/foursquare/go-metrics-graphite"
 )
 
 type Meter interface {
