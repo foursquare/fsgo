@@ -23,6 +23,9 @@ type Adminz struct {
 	// list of killfilePaths to check
 	killfilePaths []string
 
+	// defaults to 1 second
+	checkInterval time.Duration
+
 	// generates data to return to /servicez endpoint. marshalled into json.
 	servicez func() interface{}
 
@@ -39,8 +42,7 @@ type Adminz struct {
 // Creates a new Adminz "builder". Not safe to use until Build() is called.
 func New() *Adminz {
 	return &Adminz{
-		killfileTicker: time.NewTicker(time.Second),
-		Killed:         atomicbool.New(),
+		Killed: atomicbool.New(),
 	}
 }
 
@@ -75,9 +77,20 @@ func (a *Adminz) KillfilePaths(killfilePaths []string) *Adminz {
 	return a
 }
 
+// Sets frequency the killfile is checked. defaults every second
+func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
+	a.checkInterval = interval
+	return a
+}
+
 // Build initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
 func (a *Adminz) Build() *Adminz {
+	if a.checkInterval == 0 {
+		a.checkInterval = 1 * time.Second
+	}
+	a.killfileTicker = time.NewTicker(a.checkInterval)
+
 	// start killfile checking loop
 	if len(a.killfilePaths) > 0 {
 		go a.killfileLoop()

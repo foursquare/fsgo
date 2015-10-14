@@ -27,12 +27,16 @@ func ExampleAdminz_Build() {
 
 func TestKillfile(t *testing.T) {
 	killfile := path.Join(os.TempDir(), "kill")
+
+	checkInterval := 50 * time.Millisecond
+
 	pauseCounter := new(int)
 
 	*pauseCounter = 0
 
 	a := New()
 	a.KillfilePaths([]string{killfile})
+	a.KillfileInterval(checkInterval)
 	a.Pause(func() error {
 		*pauseCounter += 1
 		return nil
@@ -52,17 +56,17 @@ func TestKillfile(t *testing.T) {
 	defer k.Close()
 
 	// Sleep for 2 seconds to ensure the ticker has run
-	time.Sleep(time.Second * 2)
+	time.Sleep(checkInterval * 2)
 	assert.True(t, a.Killed.Get(), "Killfile missed")
 	assert.Equal(t, *pauseCounter, 1, "Didn't call pause")
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(checkInterval * 2)
 	assert.Equal(t, *pauseCounter, 1, "Pause should only be called once")
 
 	// Now remove and ensure we reset to running
 	os.Remove(killfile)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(checkInterval * 2)
 	assert.Equal(t, *pauseCounter, 0, "Resume should have been called")
 	assert.False(t, a.Killed.Get(), "Killfile shouldn't exist")
 }
