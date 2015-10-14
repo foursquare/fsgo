@@ -7,3 +7,8 @@ before_install:
   - curl -LO http://cl.ly/3j1T2C3S0q2M/download/zookeeper-3.4.6-fatjar.jar
   - mv zookeeper-3.4.6-fatjar.jar $HOME/zk/contrib/fatjar
   - export ZOOKEEPER_PATH=$HOME/zk
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+script:
+  - ./test-coverage.sh -service=travis-ci
