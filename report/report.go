@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/foursquare/go-metrics"
-	"github.com/foursquare/go-metrics-graphite"
 )
 
 type Meter interface {
@@ -95,15 +94,15 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 	if err != nil {
 		panic(err)
 	}
-	cfg := graphite.GraphiteConfig{
+	cfg := &GraphiteConfig{
 		Addr:          addr,
-		Registry:      r.Registry,
+		Format:        OstrichFormats,
 		FlushInterval: 30 * time.Second,
 		DurationUnit:  time.Millisecond,
 		Prefix:        graphitePrefix,
 		Percentiles:   []float64{0.5, 0.9, 0.95, 0.99, 0.999},
 	}
-	go graphite.GraphiteWithConfig(cfg)
+	go exporter(r, cfg)
 	return r
 }
 
