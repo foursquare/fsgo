@@ -67,11 +67,7 @@ func TestWrites(t *testing.T) {
 
 	metrics.GetOrRegisterCounter("foo", r).Inc(2)
 
-	// TODO: Use a mock meter rather than wasting 10s to get a QPS.
-	for i := 0; i < 10*4; i++ {
-		metrics.GetOrRegisterMeter("bar", r).Mark(1)
-		time.Sleep(250 * time.Millisecond)
-	}
+	r.Register("bar", metrics.MeterSnapshot{40, 4.0, 0.0, 0.0, 0.0})
 
 	metrics.GetOrRegisterTimer("baz", r).Update(time.Second * 5)
 	metrics.GetOrRegisterTimer("baz", r).Update(time.Second * 4)
