@@ -19,6 +19,17 @@ type ProviderStrategy interface {
 	GetInstance(instanceProvider InstanceProvider) (*ServiceInstance, error)
 }
 
+type FixedSetInstanceProvider struct {
+	instances []*ServiceInstance
+}
+
+func (p *FixedSetInstanceProvider) GetAllInstances() ([]*ServiceInstance, error) {
+	return p.instances, nil
+}
+
+// Ensure FixedSetInstanceProvider implements InstanceProvider
+var _ InstanceProvider = (*FixedSetInstanceProvider)(nil)
+
 type ServiceProvider interface {
 	InstanceProvider
 	/**
