@@ -61,17 +61,25 @@ func NewTestServer(t *testing.T, prefix string) (map[string]float64, net.Listene
 	return res, ln, r, &c, &wg
 }
 
+type DummyMeter struct {
+	count int64
+	rate1 float64
+	metrics.Meter
+}
+
+func (m DummyMeter) Count() int64            { return m.count }
+func (m DummyMeter) Rate1() float64          { return m.rate1 }
+func (m DummyMeter) Snapshot() metrics.Meter { return m }
+
+var _ (metrics.Meter) = (*DummyMeter)(nil)
+
 func TestWrites(t *testing.T) {
 	res, l, r, c, wg := NewTestServer(t, "foobar")
 	defer l.Close()
 
 	metrics.GetOrRegisterCounter("foo", r).Inc(2)
 
-	// TODO: Use a mock meter rather than wasting 10s to get a QPS.
-	for i := 0; i < 10*4; i++ {
-		metrics.GetOrRegisterMeter("bar", r).Mark(1)
-		time.Sleep(250 * time.Millisecond)
-	}
+	r.Register("bar", DummyMeter{40, 4.0, metrics.NilMeter{}})
 
 	metrics.GetOrRegisterTimer("baz", r).Update(time.Second * 5)
 	metrics.GetOrRegisterTimer("baz", r).Update(time.Second * 4)
