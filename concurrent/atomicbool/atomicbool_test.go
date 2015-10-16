@@ -1,6 +1,7 @@
 package atomicbool
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,12 +17,45 @@ func TestiToB(t *testing.T) {
 	assert.Equal(t, iToB(0), false)
 }
 
+func ExampleAtomicBool_Swap() {
+	// default is false just like bool
+	b := New()
+
+	// set to true
+	b.Set(true)
+
+	// swap values
+	fmt.Println(b.Swap(false))
+	// Output:
+	// true
+}
+func ExampleAtomicBool_CompareAndSwap() {
+	b := New()
+
+	// set to true
+	b.Set(true)
+
+	// get current value
+	fmt.Println(b.Get())
+
+	// compare b to old and set b to new if they match
+	// swapped is true iff b was set to the second arg
+	fmt.Println(b.CompareAndSwap(true, false))
+
+	// CompareAndSwap does nothing here as b's value is false
+	fmt.Println(b.CompareAndSwap(true, false))
+	// Output:
+	// true
+	// true
+	// false
+}
+
 func TestGet(t *testing.T) {
 	b := New()
 	assert.Equal(t, b.Get(), false)
 }
 
-func TestSetGet(t *testing.T) {
+func TestSet(t *testing.T) {
 	b := New()
 	b.Set(true)
 	assert.Equal(t, b.Get(), true)
@@ -29,7 +63,7 @@ func TestSetGet(t *testing.T) {
 	assert.Equal(t, b.Get(), false)
 }
 
-func TestCAS(t *testing.T) {
+func TestCompareAndSwap(t *testing.T) {
 	b := New()
 	var ret bool
 	ret = b.CompareAndSwap(true, false)

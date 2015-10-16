@@ -5,9 +5,13 @@ import (
 )
 
 type AtomicBool struct {
+	// value is either be 1 or 0
+	// 1 == true
+	// 0 == false
 	value *int32
 }
 
+// Creates a new AtomicBool with a default value of false
 func New() *AtomicBool {
 	ab := new(AtomicBool)
 	ab.value = new(int32)
