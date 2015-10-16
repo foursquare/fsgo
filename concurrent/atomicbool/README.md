@@ -15,11 +15,6 @@ b.Set(true)
 
 // get current value
 b.Get()
-
-// compare b to old and set b to new if they match
-// swapped is true iff b was set to the second arg
-swapped := b.CompareandSwap(old, new)
-
-// swap values
-old := b.Swap(false)
 ```
+
+See the docs for examples of more complex usage.
