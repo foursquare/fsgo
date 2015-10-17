@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/theevocater/go-atomicbool"
+	"github.com/foursquare/fsgo/concurrent/atomicbool"
 )
 
 type Adminz struct {
