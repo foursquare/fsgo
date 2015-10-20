@@ -110,6 +110,14 @@ func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 	return a
 }
 
+func (a *Adminz) Listen(port string) {
+	mux := http.NewServeMux()
+	a.Build(mux)
+	if err := http.ListenAndServe(port, mux); err != nil {
+		log.Fatal("Error starting admin listener:", err)
+	}
+}
+
 func (a *Adminz) Stop() {
 	if a.killfileTicker != nil {
 		a.killfileTicker.Stop()
