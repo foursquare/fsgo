@@ -22,7 +22,7 @@ func ExampleAdminz_Build() {
 	a.Healthy(func() bool { return true })
 	// If you don't add KillfilePaths, there will be no killfile checking.
 	a.KillfilePaths(Killfiles("4000"))
-	a.Build()
+	a.Build(nil)
 }
 
 func TestKillfile(t *testing.T) {
@@ -45,7 +45,7 @@ func TestKillfile(t *testing.T) {
 		*pauseCounter -= 1
 		return nil
 	})
-	a.Build()
+	a.Build(nil)
 	defer a.Stop()
 
 	assert.Equal(t, *pauseCounter, 0, "Pause shouldn't be called yet")

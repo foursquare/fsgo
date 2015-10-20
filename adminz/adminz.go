@@ -85,7 +85,7 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 
 // Build initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
-func (a *Adminz) Build() *Adminz {
+func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 	if a.checkInterval == 0 {
 		a.checkInterval = 1 * time.Second
 	}
@@ -98,8 +98,12 @@ func (a *Adminz) Build() *Adminz {
 		log.Print("Not checking killfiles.")
 	}
 
-	http.HandleFunc("/healthz", a.healthzHandler)
-	http.HandleFunc("/servicez", a.servicezHandler)
+	if mux == nil {
+		mux = http.DefaultServeMux
+	}
+
+	mux.HandleFunc("/healthz", a.healthzHandler)
+	mux.HandleFunc("/servicez", a.servicezHandler)
 
 	log.Print("adminz registered")
 	log.Print("Watching paths for killfile: ", a.killfilePaths)
