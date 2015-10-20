@@ -4,6 +4,7 @@ package adminz
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,10 @@ import (
 
 	"github.com/foursquare/fsgo/concurrent/atomicbool"
 )
+
+func Flag() *int {
+	return flag.Int("admin-port", 0, "port for http admin (defaults to default http servemux)")
+}
 
 type Adminz struct {
 	// keep track of killfile state
@@ -29,13 +34,13 @@ type Adminz struct {
 	// generates data to return to /servicez endpoint. marshalled into json.
 	servicez func() interface{}
 
-	beforeShutdown func() interface{}
+	beforeShutdown func()
 
 	// resume is called when the server is unkilled
-	resume func() error
+	resume func()
 
 	// pause is called when the server is killed
-	pause func() error
+	pause func()
 
 	// healthy returns true iff the server is ready to respond to requests
 	healthy func() bool
@@ -49,13 +54,13 @@ func New() *Adminz {
 }
 
 // Resume is called when the server is unkilled
-func (a *Adminz) Resume(resume func() error) *Adminz {
+func (a *Adminz) Resume(resume func()) *Adminz {
 	a.resume = resume
 	return a
 }
 
 // pause is called when the server is killed
-func (a *Adminz) Pause(pause func() error) *Adminz {
+func (a *Adminz) Pause(pause func()) *Adminz {
 	a.pause = pause
 	return a
 }
@@ -67,7 +72,7 @@ func (a *Adminz) Healthy(healthy func() bool) *Adminz {
 }
 
 // function to run before exiting when a shutdown is requested over http admin.
-func (a *Adminz) BeforeShutdown(f func() interface{}) *Adminz {
+func (a *Adminz) BeforeShutdown(f func()) *Adminz {
 	a.beforeShutdown = f
 	return a
 }
@@ -121,10 +126,10 @@ func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 	return a
 }
 
-func (a *Adminz) Listen(port string) {
+func (a *Adminz) Listen(port *int) {
 	mux := http.NewServeMux()
 	a.Build(mux)
-	if err := http.ListenAndServe(port, mux); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), mux); err != nil {
 		log.Fatal("Error starting admin listener:", err)
 	}
 }
