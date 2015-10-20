@@ -116,6 +116,8 @@ func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 	}
 
 	mux.HandleFunc("/healthz", a.healthzHandler)
+	mux.HandleFunc("/health", a.healthzHandler)
+
 	mux.HandleFunc("/servicez", a.servicezHandler)
 
 	mux.HandleFunc("/stopstopstop", a.gracefulShutdownHandler)
