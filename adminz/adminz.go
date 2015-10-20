@@ -29,6 +29,8 @@ type Adminz struct {
 	// generates data to return to /servicez endpoint. marshalled into json.
 	servicez func() interface{}
 
+	beforeShutdown func() interface{}
+
 	// resume is called when the server is unkilled
 	resume func() error
 
@@ -61,6 +63,12 @@ func (a *Adminz) Pause(pause func() error) *Adminz {
 // healthy returns true iff the server is ready to respond to requests
 func (a *Adminz) Healthy(healthy func() bool) *Adminz {
 	a.healthy = healthy
+	return a
+}
+
+// function to run before exiting when a shutdown is requested over http admin.
+func (a *Adminz) BeforeShutdown(f func() interface{}) *Adminz {
+	a.beforeShutdown = f
 	return a
 }
 
@@ -104,6 +112,9 @@ func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 
 	mux.HandleFunc("/healthz", a.healthzHandler)
 	mux.HandleFunc("/servicez", a.servicezHandler)
+
+	mux.HandleFunc("/stopstopstop", a.gracefulShutdownHandler)
+	mux.HandleFunc("/abortabortabort", a.fastShutdownHandler)
 
 	log.Print("adminz registered")
 	log.Print("Watching paths for killfile: ", a.killfilePaths)
@@ -167,6 +178,24 @@ func (a *Adminz) killfileLoop() {
 	}
 }
 
+func (a *Adminz) fastShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Fast shutdown requested, shutting down now.")
+	go os.Exit(0)
+}
+
+func (a *Adminz) gracefulShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	// BUG(davidt): Not protected against concurrent shutdown calls.
+	if a.beforeShutdown != nil {
+		go func() {
+			log.Println("Graceful shutdown starting...")
+			a.beforeShutdown()
+			log.Println("Graceful complete, exiting.")
+			os.Exit(0)
+		}()
+	}
+	w.Write([]byte("OK"))
+}
+
 func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// we are healthy iff:
 	// we are not killed AND
@@ -180,7 +209,7 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		ret = "Service Unavailable"
 	}
 	log.Print("Healthz returning ", ret)
-	w.Write(([]byte)(ret))
+	w.Write([]byte(ret))
 }
 
 func (a *Adminz) servicezHandler(w http.ResponseWriter, r *http.Request) {
