@@ -4,6 +4,7 @@ package adminz
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,10 @@ import (
 
 	"github.com/foursquare/fsgo/concurrent/atomicbool"
 )
+
+func Flag() *int {
+	return flag.Int("admin-port", 0, "port for http admin (defaults to default http servemux)")
+}
 
 type Adminz struct {
 	// keep track of killfile state
@@ -29,11 +34,13 @@ type Adminz struct {
 	// generates data to return to /servicez endpoint. marshalled into json.
 	servicez func() interface{}
 
+	beforeShutdown func()
+
 	// resume is called when the server is unkilled
-	resume func() error
+	resume func()
 
 	// pause is called when the server is killed
-	pause func() error
+	pause func()
 
 	// healthy returns true iff the server is ready to respond to requests
 	healthy func() bool
@@ -47,13 +54,13 @@ func New() *Adminz {
 }
 
 // Resume is called when the server is unkilled
-func (a *Adminz) Resume(resume func() error) *Adminz {
+func (a *Adminz) Resume(resume func()) *Adminz {
 	a.resume = resume
 	return a
 }
 
 // pause is called when the server is killed
-func (a *Adminz) Pause(pause func() error) *Adminz {
+func (a *Adminz) Pause(pause func()) *Adminz {
 	a.pause = pause
 	return a
 }
@@ -61,6 +68,12 @@ func (a *Adminz) Pause(pause func() error) *Adminz {
 // healthy returns true iff the server is ready to respond to requests
 func (a *Adminz) Healthy(healthy func() bool) *Adminz {
 	a.healthy = healthy
+	return a
+}
+
+// function to run before exiting when a shutdown is requested over http admin.
+func (a *Adminz) BeforeShutdown(f func()) *Adminz {
+	a.beforeShutdown = f
 	return a
 }
 
@@ -85,7 +98,7 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 
 // Build initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
-func (a *Adminz) Build() *Adminz {
+func (a *Adminz) Build(mux *http.ServeMux) *Adminz {
 	if a.checkInterval == 0 {
 		a.checkInterval = 1 * time.Second
 	}
@@ -98,12 +111,29 @@ func (a *Adminz) Build() *Adminz {
 		log.Print("Not checking killfiles.")
 	}
 
-	http.HandleFunc("/healthz", a.healthzHandler)
-	http.HandleFunc("/servicez", a.servicezHandler)
+	if mux == nil {
+		mux = http.DefaultServeMux
+	}
+
+	mux.HandleFunc("/healthz", a.healthzHandler)
+	mux.HandleFunc("/health", a.healthzHandler)
+
+	mux.HandleFunc("/servicez", a.servicezHandler)
+
+	mux.HandleFunc("/stopstopstop", a.gracefulShutdownHandler)
+	mux.HandleFunc("/abortabortabort", a.fastShutdownHandler)
 
 	log.Print("adminz registered")
 	log.Print("Watching paths for killfile: ", a.killfilePaths)
 	return a
+}
+
+func (a *Adminz) Listen(port *int) {
+	mux := http.NewServeMux()
+	a.Build(mux)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), mux); err != nil {
+		log.Fatal("Error starting admin listener:", err)
+	}
 }
 
 func (a *Adminz) Stop() {
@@ -155,6 +185,24 @@ func (a *Adminz) killfileLoop() {
 	}
 }
 
+func (a *Adminz) fastShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Fast shutdown requested, shutting down now.")
+	go os.Exit(0)
+}
+
+func (a *Adminz) gracefulShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	// BUG(davidt): Not protected against concurrent shutdown calls.
+	if a.beforeShutdown != nil {
+		go func() {
+			log.Println("Graceful shutdown starting...")
+			a.beforeShutdown()
+			log.Println("Graceful complete, exiting.")
+			os.Exit(0)
+		}()
+	}
+	w.Write([]byte("OK"))
+}
+
 func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// we are healthy iff:
 	// we are not killed AND
@@ -168,7 +216,7 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 		ret = "Service Unavailable"
 	}
 	log.Print("Healthz returning ", ret)
-	w.Write(([]byte)(ret))
+	w.Write([]byte(ret))
 }
 
 func (a *Adminz) servicezHandler(w http.ResponseWriter, r *http.Request) {
