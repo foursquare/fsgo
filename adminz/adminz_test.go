@@ -21,7 +21,7 @@ func ExampleAdminz_Build() {
 	a.Servicez(func() interface{} { return "{}" })
 	a.Healthy(func() bool { return true })
 	// If you don't add KillfilePaths, there will be no killfile checking.
-	a.KillfilePaths(Killfiles("4000"))
+	a.KillfilePaths(Killfiles(4000))
 	a.Build()
 }
 
