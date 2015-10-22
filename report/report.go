@@ -142,7 +142,8 @@ func TimeSince(name string, t time.Time) {
 }
 
 func (r *Recorder) ServeHTTP(out http.ResponseWriter, req *http.Request) {
-	writeStats(r, out)
+	out.Header().Add("Content-Type", "text/plain")
+	writeStats(r, out, true)
 }
 
 func (r *Recorder) RegisterHttp() {
