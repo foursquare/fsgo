@@ -16,8 +16,8 @@ func ExampleAdminz_Build() {
 	// To set up the adminz pages, first call New, then add whichever handlers
 	// you need, then call build.
 	a := New()
-	a.Pause(func() error { /* do a thing */ return nil })
-	a.Resume(func() error { /* do a thing */ return nil })
+	a.OnPause(func() { /* do a thing */ })
+	a.OnResume(func() { /* do a thing */ })
 	a.Servicez(func() interface{} { return "{}" })
 	a.Healthy(func() bool { return true })
 	// If you don't add KillfilePaths, there will be no killfile checking.
@@ -37,13 +37,11 @@ func TestKillfile(t *testing.T) {
 	a := New()
 	a.KillfilePaths([]string{killfile})
 	a.KillfileInterval(checkInterval)
-	a.Pause(func() error {
+	a.OnPause(func() {
 		*pauseCounter += 1
-		return nil
 	})
-	a.Resume(func() error {
+	a.OnResume(func() {
 		*pauseCounter -= 1
-		return nil
 	})
 	a.Build()
 	defer a.Stop()

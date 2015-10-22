@@ -31,10 +31,10 @@ type Adminz struct {
 	servicez func() interface{}
 
 	// resume is called when the server is unkilled
-	resume func() error
+	onresume func()
 
 	// pause is called when the server is killed
-	pause func() error
+	onpause func()
 
 	// healthy returns true iff the server is ready to respond to requests
 	healthy func() bool
@@ -48,14 +48,14 @@ func New() *Adminz {
 }
 
 // Resume is called when the server is unkilled
-func (a *Adminz) Resume(resume func() error) *Adminz {
-	a.resume = resume
+func (a *Adminz) OnResume(resume func()) *Adminz {
+	a.onresume = resume
 	return a
 }
 
 // pause is called when the server is killed
-func (a *Adminz) Pause(pause func() error) *Adminz {
-	a.pause = pause
+func (a *Adminz) OnPause(pause func()) *Adminz {
+	a.onpause = pause
 	return a
 }
 
@@ -143,14 +143,14 @@ func (a *Adminz) killfileLoop() {
 		next := a.checkKillfiles()
 		if current == false && next == true {
 			// If we are currently running and a killfile is dropped, call pause()
-			if a.pause != nil {
-				a.pause()
+			if a.onpause != nil {
+				a.onpause()
 			}
 			a.Killed.Set(next)
 		} else if current == true && next == false {
 			// If we are currently not running and the killfile is removed, call resume()
-			if a.resume != nil {
-				a.resume()
+			if a.onresume != nil {
+				a.onresume()
 			}
 			a.Killed.Set(next)
 		}
