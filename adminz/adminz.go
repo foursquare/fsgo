@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/foursquare/fsgo/concurrent/atomicbool"
@@ -100,6 +101,7 @@ func (a *Adminz) Build() *Adminz {
 
 	http.HandleFunc("/healthz", a.healthzHandler)
 	http.HandleFunc("/servicez", a.servicezHandler)
+	http.HandleFunc("/gc", a.gcHandler)
 
 	log.Print("adminz registered")
 	log.Print("Watching paths for killfile: ", a.killfilePaths)
@@ -186,4 +188,29 @@ func (a *Adminz) servicezHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, err.Error(), 500)
 	}
+}
+
+func (a *Adminz) gcHandler(w http.ResponseWriter, r *http.Request) {
+	var mem runtime.MemStats
+
+	mb := uint64(1024 * 1024)
+	runtime.ReadMemStats(&mem)
+	fmt.Fprintln(w, "Before")
+	fmt.Fprintln(w, "\tAlloc\t", mem.Alloc/mb)
+	fmt.Fprintln(w, "\tTotalAlloc:\t", mem.TotalAlloc/mb)
+	fmt.Fprintln(w, "\tHeapAlloc:\t", mem.HeapAlloc/mb)
+	fmt.Fprintln(w, "\tHeapSys:\t", mem.HeapSys/mb)
+	fmt.Fprintln(w, "\tSys:\t", mem.Sys/mb)
+
+	runtime.GC()
+
+	runtime.ReadMemStats(&mem)
+	fmt.Fprintln(w, "After")
+	fmt.Fprintln(w, "\tAlloc\t", mem.Alloc/mb)
+	fmt.Fprintln(w, "\tTotalAlloc:\t", mem.TotalAlloc/mb)
+	fmt.Fprintln(w, "\tHeapAlloc:\t", mem.HeapAlloc/mb)
+	fmt.Fprintln(w, "\tHeapSys:\t", mem.HeapSys/mb)
+	fmt.Fprintln(w, "\tSys:\t", mem.Sys/mb)
+
+	w.Write([]byte("OK"))
 }
