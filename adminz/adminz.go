@@ -120,7 +120,7 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 
 // Build initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
-func (a *Adminz) Build() *Adminz {
+func (a *Adminz) Start() *Adminz {
 	http.HandleFunc("/healthz", a.healthzHandler)
 	http.HandleFunc("/servicez", a.servicezHandler)
 	http.HandleFunc("/gc", a.gcHandler)
