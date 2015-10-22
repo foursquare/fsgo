@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -29,10 +30,20 @@ func Flag() *string {
 
 type Recorder struct {
 	metrics.Registry
+	Format       ExportFormatStrings
+	DurationUnit time.Duration // Time conversion unit for durations
+	Prefix       string        // Prefix to be prepended to metric names
+	Percentiles  []float64     // Percentiles to export from timers and histograms
 }
 
 func NewRecorder() *Recorder {
-	return &Recorder{metrics.NewRegistry()}
+	return &Recorder{
+		metrics.NewRegistry(),
+		OstrichFormats,
+		time.Millisecond,
+		"",
+		[]float64{0.5, 0.9, 0.95, 0.99, 0.999},
+	}
 }
 
 func (r *Recorder) GetGuage(name string) Guage {
@@ -94,13 +105,11 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 	if err != nil {
 		panic(err)
 	}
+	r.Prefix = graphitePrefix
+
 	cfg := &GraphiteConfig{
 		Addr:          addr,
-		Format:        OstrichFormats,
 		FlushInterval: 30 * time.Second,
-		DurationUnit:  time.Millisecond,
-		Prefix:        graphitePrefix,
-		Percentiles:   []float64{0.5, 0.9, 0.95, 0.99, 0.999},
 	}
 	go exporter(r, cfg)
 	return r
@@ -130,4 +139,12 @@ func Time(name string, du time.Duration) {
 
 func TimeSince(name string, t time.Time) {
 	metrics.GetOrRegisterTimer(name, GetDefault()).UpdateSince(t)
+}
+
+func (r *Recorder) ServeHTTP(out http.ResponseWriter, req *http.Request) {
+	writeStats(r, out)
+}
+
+func (r *Recorder) RegisterHttp() {
+	http.Handle("/statz", r)
 }
