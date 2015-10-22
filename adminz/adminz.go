@@ -113,11 +113,12 @@ func (a *Adminz) Stop() {
 }
 
 // Generates the standard set of killfiles. Pass these to KillfilePaths
-func Killfiles(ports ...string) []string {
+func Killfiles(ports ...int) []string {
 	// the number of ports + the "all" killfile
+	log.Print(ports)
 	var ret = make([]string, len(ports)+1)
 	for i, port := range ports {
-		ret[i] = fmt.Sprintf("/dev/shm/healthz/kill.%s", port)
+		ret[i] = fmt.Sprintf("/dev/shm/healthz/kill.%d", port)
 	}
 	ret[len(ports)] = "/dev/shm/healthz/kill.all"
 	return ret
