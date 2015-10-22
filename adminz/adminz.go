@@ -49,6 +49,11 @@ func New() *Adminz {
 func (a *Adminz) Resume() {
 	a.Lock()
 	defer a.Unlock()
+	a.doResume()
+}
+
+// Internal helper to resume if stopped. MUST be called while holding a.Lock. Use a.Resume if not.
+func (a *Adminz) doResume() {
 	if !a.running {
 		if a.onresume != nil {
 			a.onresume()
@@ -67,6 +72,11 @@ func (a *Adminz) OnResume(resume func()) *Adminz {
 func (a *Adminz) Pause() bool {
 	a.Lock()
 	defer a.Unlock()
+	return a.doPause()
+}
+
+// Internal helper to pause if running. MUST be called while holding a.Lock. Use a.Pause if not.
+func (a *Adminz) doPause() bool {
 	was := a.running
 	if a.running {
 		if a.onpause != nil {
@@ -219,7 +229,13 @@ func (a *Adminz) gcHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "\tHeapSys:\t", mem.HeapSys/mb)
 	fmt.Fprintln(w, "\tSys:\t", mem.Sys/mb)
 
+	a.Lock()
+	was := a.doPause()
 	runtime.GC()
+	if was {
+		a.doResume()
+	}
+	a.Unlock()
 
 	runtime.ReadMemStats(&mem)
 	fmt.Fprintln(w, "After")
