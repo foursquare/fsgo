@@ -9,14 +9,13 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync"
 	"time"
-
-	"github.com/foursquare/fsgo/concurrent/atomicbool"
 )
 
 type Adminz struct {
 	// keep track of killfile state
-	Killed *atomicbool.AtomicBool
+	running bool
 
 	// ticker that checks killfiles every 1 second
 	killfileTicker *time.Ticker
@@ -38,12 +37,23 @@ type Adminz struct {
 
 	// healthy returns true iff the server is ready to respond to requests
 	healthy func() bool
+
+	sync.Mutex
 }
 
 // Creates a new Adminz "builder". Not safe to use until Build() is called.
 func New() *Adminz {
-	return &Adminz{
-		Killed: atomicbool.New(),
+	return &Adminz{}
+}
+
+func (a *Adminz) Resume() {
+	a.Lock()
+	defer a.Unlock()
+	if !a.running {
+		if a.onresume != nil {
+			a.onresume()
+		}
+		a.running = true
 	}
 }
 
@@ -51,6 +61,20 @@ func New() *Adminz {
 func (a *Adminz) OnResume(resume func()) *Adminz {
 	a.onresume = resume
 	return a
+}
+
+// Pause the server if it is running and return true, otherwise no-op and return false.
+func (a *Adminz) Pause() bool {
+	a.Lock()
+	defer a.Unlock()
+	was := a.running
+	if a.running {
+		if a.onpause != nil {
+			a.onpause()
+		}
+		a.running = false
+	}
+	return was
 }
 
 // pause is called when the server is killed
@@ -87,6 +111,12 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 // Build initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
 func (a *Adminz) Build() *Adminz {
+	http.HandleFunc("/healthz", a.healthzHandler)
+	http.HandleFunc("/servicez", a.servicezHandler)
+	http.HandleFunc("/gc", a.gcHandler)
+
+	log.Print("adminz registered")
+
 	if a.checkInterval == 0 {
 		a.checkInterval = 1 * time.Second
 	}
@@ -94,17 +124,13 @@ func (a *Adminz) Build() *Adminz {
 
 	// start killfile checking loop
 	if len(a.killfilePaths) > 0 {
+		log.Print("Watching paths for killfile: ", a.killfilePaths)
+		a.checkKillfiles()
 		go a.killfileLoop()
 	} else {
-		log.Print("Not checking killfiles.")
+		log.Print("No killfiles being watched.")
 	}
 
-	http.HandleFunc("/healthz", a.healthzHandler)
-	http.HandleFunc("/servicez", a.servicezHandler)
-	http.HandleFunc("/gc", a.gcHandler)
-
-	log.Print("adminz registered")
-	log.Print("Watching paths for killfile: ", a.killfilePaths)
 	return a
 }
 
@@ -131,30 +157,19 @@ func (a *Adminz) checkKillfiles() bool {
 		file, err := os.Open(killfile)
 		if file != nil && err == nil {
 			file.Close()
+			if a.Pause() {
+				log.Println("paused due to ", killfile)
+			}
 			return true
 		}
 	}
+	a.Resume()
 	return false
 }
 
 func (a *Adminz) killfileLoop() {
 	for _ = range a.killfileTicker.C {
-		current := a.Killed.Get()
-		next := a.checkKillfiles()
-		if current == false && next == true {
-			// If we are currently running and a killfile is dropped, call pause()
-			if a.onpause != nil {
-				a.onpause()
-			}
-			a.Killed.Set(next)
-		} else if current == true && next == false {
-			// If we are currently not running and the killfile is removed, call resume()
-			if a.onresume != nil {
-				a.onresume()
-			}
-			a.Killed.Set(next)
-		}
-		// If we hit neither of those, no state changed.
+		a.checkKillfiles()
 	}
 }
 
@@ -164,12 +179,14 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// a.healthy is unset (so we ignore it) OR
 	// a.healthy() returns true
 	var ret string
-	if !a.Killed.Get() && (a.healthy == nil || a.healthy()) {
+
+	if !a.running && (a.healthy == nil || a.healthy()) {
 		ret = "OK"
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		ret = "Service Unavailable"
 	}
+
 	log.Print("Healthz returning ", ret)
 	w.Write(([]byte)(ret))
 }

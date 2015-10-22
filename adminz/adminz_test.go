@@ -27,12 +27,13 @@ func ExampleAdminz_Build() {
 
 func TestKillfile(t *testing.T) {
 	killfile := path.Join(os.TempDir(), "kill")
+	os.Remove(killfile)
 
 	checkInterval := 50 * time.Millisecond
 
 	pauseCounter := new(int)
 
-	*pauseCounter = 0
+	*pauseCounter = 1
 
 	a := New()
 	a.KillfilePaths([]string{killfile})
@@ -48,14 +49,14 @@ func TestKillfile(t *testing.T) {
 
 	assert.Equal(t, *pauseCounter, 0, "Pause shouldn't be called yet")
 
-	assert.False(t, a.Killed.Get(), "Killfile shouldn't exist")
+	assert.True(t, a.running, "Killfile shouldn't exist")
 	k, err := os.Create(killfile)
 	assert.Nil(t, err, "Unable to create killfile")
 	defer k.Close()
 
 	// Sleep for 2 seconds to ensure the ticker has run
 	time.Sleep(checkInterval * 2)
-	assert.True(t, a.Killed.Get(), "Killfile missed")
+	assert.False(t, a.running, "Killfile missed")
 	assert.Equal(t, *pauseCounter, 1, "Didn't call pause")
 
 	time.Sleep(checkInterval * 2)
@@ -66,7 +67,7 @@ func TestKillfile(t *testing.T) {
 
 	time.Sleep(checkInterval * 2)
 	assert.Equal(t, *pauseCounter, 0, "Resume should have been called")
-	assert.False(t, a.Killed.Get(), "Killfile shouldn't exist")
+	assert.True(t, a.running, "Killfile shouldn't exist")
 }
 
 // Can't run this until I figure out how to tear up and down http stuff.
