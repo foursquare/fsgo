@@ -66,6 +66,10 @@ type RoundRobinProvider struct {
 	index uint64
 }
 
+func NewRoundRobinProvider() *RoundRobinProvider {
+	return &RoundRobinProvider{0}
+}
+
 // Ensure RoundRobinProvider implements ProviderStrategy
 var _ ProviderStrategy = (*RoundRobinProvider)(nil)
 
