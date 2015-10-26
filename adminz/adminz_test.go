@@ -16,48 +16,47 @@ func ExampleAdminz_Build() {
 	// To set up the adminz pages, first call New, then add whichever handlers
 	// you need, then call build.
 	a := New()
-	a.Pause(func() error { /* do a thing */ return nil })
-	a.Resume(func() error { /* do a thing */ return nil })
+	a.OnPause(func() { /* do a thing */ })
+	a.OnResume(func() { /* do a thing */ })
 	a.Servicez(func() interface{} { return "{}" })
 	a.Healthy(func() bool { return true })
 	// If you don't add KillfilePaths, there will be no killfile checking.
 	a.KillfilePaths(Killfiles(4000))
-	a.Build()
+	a.Start()
 }
 
 func TestKillfile(t *testing.T) {
 	killfile := path.Join(os.TempDir(), "kill")
+	os.Remove(killfile)
 
 	checkInterval := 50 * time.Millisecond
 
 	pauseCounter := new(int)
 
-	*pauseCounter = 0
+	*pauseCounter = 1
 
 	a := New()
 	a.KillfilePaths([]string{killfile})
 	a.KillfileInterval(checkInterval)
-	a.Pause(func() error {
+	a.OnPause(func() {
 		*pauseCounter += 1
-		return nil
 	})
-	a.Resume(func() error {
+	a.OnResume(func() {
 		*pauseCounter -= 1
-		return nil
 	})
-	a.Build()
+	a.Start()
 	defer a.Stop()
 
 	assert.Equal(t, *pauseCounter, 0, "Pause shouldn't be called yet")
 
-	assert.False(t, a.Killed.Get(), "Killfile shouldn't exist")
+	assert.True(t, a.running, "Killfile shouldn't exist")
 	k, err := os.Create(killfile)
 	assert.Nil(t, err, "Unable to create killfile")
 	defer k.Close()
 
 	// Sleep for 2 seconds to ensure the ticker has run
 	time.Sleep(checkInterval * 2)
-	assert.True(t, a.Killed.Get(), "Killfile missed")
+	assert.False(t, a.running, "Killfile missed")
 	assert.Equal(t, *pauseCounter, 1, "Didn't call pause")
 
 	time.Sleep(checkInterval * 2)
@@ -68,7 +67,7 @@ func TestKillfile(t *testing.T) {
 
 	time.Sleep(checkInterval * 2)
 	assert.Equal(t, *pauseCounter, 0, "Resume should have been called")
-	assert.False(t, a.Killed.Get(), "Killfile shouldn't exist")
+	assert.True(t, a.running, "Killfile shouldn't exist")
 }
 
 // Can't run this until I figure out how to tear up and down http stuff.
