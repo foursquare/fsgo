@@ -130,7 +130,7 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 
 	cfg := &GraphiteConfig{
 		Addr:          addr,
-		FlushInterval: 30 * time.Second,
+		FlushInterval: 1 * time.Minute,
 	}
 	r.isExporting = true
 
