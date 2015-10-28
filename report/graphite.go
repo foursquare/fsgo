@@ -53,12 +53,14 @@ func writeStats(r *Recorder, w io.Writer, trimTs bool) {
 		switch metric := i.(type) {
 		case metrics.Counter:
 			fmt.Fprintf(w, trim(r.Format.Counter), r.Prefix, name, metric.Count(), now)
+			metric.Clear()
 		case metrics.Gauge:
 			fmt.Fprintf(w, trim(r.Format.Gauge), r.Prefix, name, metric.Value(), now)
 		case metrics.GaugeFloat64:
 			fmt.Fprintf(w, trim(r.Format.GaugeFloat64), r.Prefix, name, metric.Value(), now)
 		case metrics.Histogram:
 			h := metric.Snapshot()
+			h.Clear()
 			ps := h.Percentiles(r.Percentiles)
 			fmt.Fprintf(w, trim(r.Format.HistogramCount), r.Prefix, name, h.Count(), now)
 			fmt.Fprintf(w, trim(r.Format.Min), r.Prefix, name, h.Min(), now)
@@ -73,11 +75,14 @@ func writeStats(r *Recorder, w io.Writer, trimTs bool) {
 			m := metric.Snapshot()
 			fmt.Fprintf(w, trim(r.Format.HistogramCount), r.Prefix, name, m.Count(), now)
 			fmt.Fprintf(w, trim(r.Format.Rate1), r.Prefix, name, m.Rate1(), now)
-			fmt.Fprintf(w, trim(r.Format.Rate5), r.Prefix, name, m.Rate5(), now)
-			fmt.Fprintf(w, trim(r.Format.Rate15), r.Prefix, name, m.Rate15(), now)
 			fmt.Fprintf(w, trim(r.Format.Mean), r.Prefix, name, m.RateMean(), now)
 		case metrics.Timer:
 			t := metric.Snapshot()
+			switch timer := metric.(type) {
+			case *ClearableTimer:
+				timer.Clear()
+			default:
+			}
 			ps := t.Percentiles(r.Percentiles)
 			fmt.Fprintf(w, trim(r.Format.HistogramCount), r.Prefix, name, t.Count(), now)
 			fmt.Fprintf(w, trim(r.Format.Min), r.Prefix, name, t.Min()/int64(du), now)
@@ -92,6 +97,7 @@ func writeStats(r *Recorder, w io.Writer, trimTs bool) {
 			fmt.Fprintf(w, trim(r.Format.Rate5), r.Prefix, name, t.Rate5(), now)
 			fmt.Fprintf(w, trim(r.Format.Rate15), r.Prefix, name, t.Rate15(), now)
 			fmt.Fprintf(w, trim(r.Format.Mean), r.Prefix, name, t.RateMean(), now)
+
 		default:
 			log.Printf("Cannot export unknown metric type %T for '%s'\n", i, name)
 		}
