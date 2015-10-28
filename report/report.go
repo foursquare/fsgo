@@ -30,6 +30,7 @@ func Flag() *string {
 
 type Recorder struct {
 	metrics.Registry
+	isExporting  bool
 	Format       ExportFormatStrings
 	DurationUnit time.Duration // Time conversion unit for durations
 	Prefix       string        // Prefix to be prepended to metric names
@@ -39,6 +40,7 @@ type Recorder struct {
 func NewRecorder() *Recorder {
 	return &Recorder{
 		metrics.NewRegistry(),
+		false,
 		OstrichFormats,
 		time.Millisecond,
 		"",
@@ -50,8 +52,27 @@ func (r *Recorder) GetGuage(name string) Guage {
 	return metrics.GetOrRegisterGauge(name, r)
 }
 
+type ClearableTimer struct {
+	metrics.Timer
+	h metrics.Histogram
+}
+
+func (c *ClearableTimer) Clear() {
+	c.h.Clear()
+}
+
+func (r *Recorder) makeTimer() metrics.Timer {
+	if r.isExporting {
+		h := metrics.NewHistogram(metrics.NewUniformSample(1000 * 30))
+		t := metrics.NewCustomTimer(h, metrics.NewMeter())
+		return &ClearableTimer{t, h}
+	} else {
+		return metrics.NewTimer()
+	}
+}
+
 func (r *Recorder) GetTimer(name string) Timer {
-	return metrics.GetOrRegisterTimer(name, r)
+	return r.GetOrRegister(name, r.makeTimer).(Timer)
 }
 
 func (r *Recorder) GetMeter(name string) Meter {
@@ -109,8 +130,10 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 
 	cfg := &GraphiteConfig{
 		Addr:          addr,
-		FlushInterval: 30 * time.Second,
+		FlushInterval: 1 * time.Minute,
 	}
+	r.isExporting = true
+
 	go exporter(r, cfg)
 	return r
 }
