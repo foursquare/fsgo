@@ -138,6 +138,11 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 	return r
 }
 
+func (r *Recorder) RegisterHttp() *Recorder {
+	http.Handle("/statz", r)
+	return r
+}
+
 var defaultRecorder *Recorder
 
 func (r *Recorder) SetAsDefault() *Recorder {
@@ -167,8 +172,4 @@ func TimeSince(name string, t time.Time) {
 func (r *Recorder) ServeHTTP(out http.ResponseWriter, req *http.Request) {
 	out.Header().Add("Content-Type", "text/plain")
 	writeStats(r, out, true)
-}
-
-func (r *Recorder) RegisterHttp() {
-	http.Handle("/statz", r)
 }
