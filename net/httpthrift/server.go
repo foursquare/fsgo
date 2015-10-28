@@ -36,7 +36,9 @@ func (p ThriftOverHTTPHandler) handle(iprot, oprot thrift.TProtocol) (success bo
 		start := time.Now()
 		success, err = processor.Process(seqId, iprot, oprot)
 		if p.stats != nil {
-			p.stats.TimeSince(name, start)
+			dur := time.Now().Sub(start)
+			p.stats.Time("rpc._all_", dur)
+			p.stats.Time("rpc."+name, dur)
 		}
 		return
 	}
@@ -65,6 +67,7 @@ func (h *ThriftOverHTTPHandler) getBuf() *thrift.TMemoryBuffer {
 }
 
 func (h *ThriftOverHTTPHandler) ServeHTTP(out http.ResponseWriter, req *http.Request) {
+	start := time.Now()
 	if req.Method == "POST" {
 		inbuf := h.getBuf()
 		defer h.buffers.Put(inbuf)
@@ -100,5 +103,8 @@ func (h *ThriftOverHTTPHandler) ServeHTTP(out http.ResponseWriter, req *http.Req
 		}
 	} else {
 		http.Error(out, "Must POST TBinary encoded thrift RPC", 401)
+	}
+	if h.stats != nil {
+		h.stats.TimeSince("servehttp", start)
 	}
 }
