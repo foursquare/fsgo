@@ -190,7 +190,7 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	// a.healthy() returns true
 	var ret string
 
-	if !a.running && (a.healthy == nil || a.healthy()) {
+	if a.running && (a.healthy == nil || a.healthy()) {
 		ret = "OK"
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
