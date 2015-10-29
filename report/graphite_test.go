@@ -16,7 +16,7 @@ func floatEquals(a, b float64) bool {
 	return (a-b) < 0.000001 && (b-a) < 0.000001
 }
 
-func NewTestServer(t *testing.T, prefix string) (map[string]float64, net.Listener, *Recorder, *GraphiteConfig, *sync.WaitGroup) {
+func NewTestServer(t *testing.T, prefix string) (map[string]float64, net.Listener, *Recorder, *sync.WaitGroup) {
 	res := make(map[string]float64)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -49,13 +49,9 @@ func NewTestServer(t *testing.T, prefix string) (map[string]float64, net.Listene
 
 	r := NewRecorder()
 	r.Prefix = prefix
-	r.isExporting = true
-	c := GraphiteConfig{
-		Addr:          ln.Addr().(*net.TCPAddr),
-		FlushInterval: 10 * time.Millisecond,
-	}
+	r.graphite = ln.Addr().(*net.TCPAddr)
 
-	return res, ln, r, &c, &wg
+	return res, ln, r, &wg
 }
 
 type DummyMeter struct {
@@ -80,7 +76,7 @@ func fillMetrics(r *Recorder) {
 }
 
 func TestGoMetricsWrites(t *testing.T) {
-	res, l, r, c, wg := NewTestServer(t, "foobar")
+	res, l, r, wg := NewTestServer(t, "foobar")
 	defer l.Close()
 
 	metrics.GetOrRegisterCounter("foo", r).Inc(2)
@@ -92,7 +88,7 @@ func TestGoMetricsWrites(t *testing.T) {
 	if testing.Verbose() {
 		t.Log("Sening go-metrics format to graphite..")
 	}
-	sendToGraphite(r, c)
+	r.sendToGraphite()
 	wg.Wait()
 
 	if expected, found := 2.0, res["foobar.foo.count"]; !floatEquals(found, expected) {
@@ -121,7 +117,7 @@ func TestGoMetricsWrites(t *testing.T) {
 }
 
 func TestOstrichWrites(t *testing.T) {
-	res, l, r, c, wg := NewTestServer(t, "foobar")
+	res, l, r, wg := NewTestServer(t, "foobar")
 	defer l.Close()
 
 	fillMetrics(r)
@@ -131,7 +127,7 @@ func TestOstrichWrites(t *testing.T) {
 	if testing.Verbose() {
 		t.Log("Sening ostrich format to graphite..")
 	}
-	sendToGraphite(r, c)
+	r.sendToGraphite()
 	wg.Wait()
 
 	if expected, found := 0.0, res["foobar.baz.99-percentile"]; !floatEquals(found, expected) {
@@ -158,7 +154,7 @@ func TestOstrichWrites(t *testing.T) {
 	if testing.Verbose() {
 		t.Log("Sening recently cleared metrics to graphite...")
 	}
-	sendToGraphite(r, c)
+	r.sendToGraphite()
 	wg.Wait()
 
 	if expected, found := 0.0, res["foobar.baz.percentiles.p99"]; !floatEquals(found, expected) {

@@ -30,21 +30,23 @@ func Flag() *string {
 
 type Recorder struct {
 	metrics.Registry
-	isExporting  bool
-	Format       ExportFormatStrings
-	DurationUnit time.Duration // Time conversion unit for durations
-	Prefix       string        // Prefix to be prepended to metric names
-	Percentiles  []float64     // Percentiles to export from timers and histograms
+	Format        ExportFormatStrings
+	DurationUnit  time.Duration // Time conversion unit for durations
+	Prefix        string        // Prefix to be prepended to metric names
+	Percentiles   []float64     // Percentiles to export from timers and histograms
+	flushInterval time.Duration
+	graphite      *net.TCPAddr
 }
 
 func NewRecorder() *Recorder {
 	return &Recorder{
 		metrics.NewRegistry(),
-		false,
 		OstrichFormats,
 		time.Millisecond,
 		"",
 		[]float64{0.5, 0.9, 0.95, 0.99, 0.999},
+		time.Minute,
+		nil,
 	}
 }
 
@@ -62,7 +64,7 @@ func (c *ClearableTimer) Clear() {
 }
 
 func (r *Recorder) makeTimer() metrics.Timer {
-	if r.isExporting {
+	if r.graphite != nil {
 		h := metrics.NewHistogram(metrics.NewUniformSample(1000 * 30))
 		t := metrics.NewCustomTimer(h, metrics.NewMeter())
 		return &ClearableTimer{t, h}
@@ -128,13 +130,9 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 	}
 	r.Prefix = graphitePrefix
 
-	cfg := &GraphiteConfig{
-		Addr:          addr,
-		FlushInterval: 1 * time.Minute,
-	}
-	r.isExporting = true
+	r.graphite = addr
 
-	go exporter(r, cfg)
+	go r.exporter()
 	return r
 }
 
