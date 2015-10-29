@@ -15,9 +15,7 @@ import (
 
 func (r *Recorder) exporter() {
 	for _ = range time.Tick(r.flushInterval) {
-		if err := r.sendToGraphite(); nil != err {
-			log.Println(err)
-		}
+		r.FlushNow()
 	}
 }
 

@@ -136,6 +136,14 @@ func (r *Recorder) ReportToServer(graphiteServer, graphitePrefix string) *Record
 	return r
 }
 
+func (r *Recorder) FlushNow() {
+	if r.graphite != nil {
+		if err := r.sendToGraphite(); nil != err {
+			log.Println(err)
+		}
+	}
+}
+
 func (r *Recorder) RegisterHttp() *Recorder {
 	http.Handle("/statz", r)
 	return r
