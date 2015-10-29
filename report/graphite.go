@@ -13,21 +13,14 @@ import (
 	"github.com/foursquare/go-metrics"
 )
 
-type GraphiteConfig struct {
-	Addr          *net.TCPAddr  // Network address to connect to
-	FlushInterval time.Duration // Flush interval
-}
-
-func exporter(r *Recorder, c *GraphiteConfig) {
-	for _ = range time.Tick(c.FlushInterval) {
-		if err := sendToGraphite(r, c); nil != err {
-			log.Println(err)
-		}
+func (r *Recorder) exporter() {
+	for _ = range time.Tick(r.flushInterval) {
+		r.FlushNow()
 	}
 }
 
-func sendToGraphite(r *Recorder, c *GraphiteConfig) error {
-	conn, err := net.DialTCP("tcp", nil, c.Addr)
+func (r *Recorder) sendToGraphite() error {
+	conn, err := net.DialTCP("tcp", nil, r.graphite)
 	if nil != err {
 		return err
 	}
