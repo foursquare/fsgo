@@ -122,7 +122,7 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 // remember to call this!
 func (a *Adminz) Start() *Adminz {
 	http.HandleFunc("/healthz", a.healthzHandler)
-	http.HandleFunc("/servicez", a.servicezHandler)
+	http.HandleFunc("/servicez", a.ServicezHandler)
 	http.HandleFunc("/gc", a.gcHandler)
 
 	log.Print("adminz registered")
@@ -201,12 +201,19 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(([]byte)(ret))
 }
 
-func (a *Adminz) servicezHandler(w http.ResponseWriter, r *http.Request) {
-	if a.servicez == nil {
-		return
+type EmptyStruct struct {
+}
+
+func (a *Adminz) ServicezHandler(w http.ResponseWriter, r *http.Request) {
+	var data interface{}
+
+	if a.servicez != nil {
+		data = a.servicez()
+	} else {
+		data = &EmptyStruct{}
 	}
 
-	bytes, err := json.Marshal(a.servicez())
+	bytes, err := json.Marshal(data)
 	if err == nil {
 		w.Header().Add("Content-Type", "text/json")
 		// TODO I probably need to serialize reads to servicez as who knows what
