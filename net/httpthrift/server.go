@@ -36,16 +36,23 @@ func (p ThriftOverHTTPHandler) handle(iprot, oprot thrift.TProtocol) (success bo
 		start := time.Now()
 		success, err = processor.Process(seqId, iprot, oprot)
 		if p.stats != nil {
+			if err != nil {
+				p.stats.Inc("rpc.error." + name)
+			}
 			dur := time.Now().Sub(start)
-			p.stats.Time("rpc._all_", dur)
-			p.stats.Time("rpc."+name, dur)
+			p.stats.Time("rpc.timing._all_", dur)
+			p.stats.Time("rpc.timing."+name, dur)
 		}
-		return
+		return success, err
 	}
 
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
 	e := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+
+	if p.stats != nil {
+		p.stats.Inc("rpc.error.unknown_function." + name)
+	}
 
 	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
 	e.Write(oprot)
