@@ -13,7 +13,7 @@ import (
 )
 
 func getTestCluster(t *testing.T) *zk.TestCluster {
-	zkCluster, err := zk.StartTestCluster(1, nil, os.Stdout)
+	zkCluster, err := zk.StartTestCluster(1, os.Stdout, os.Stderr)
 
 	if err != nil {
 		t.Fatal("cannot start testing zk cluster: ", err)
