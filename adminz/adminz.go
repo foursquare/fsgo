@@ -195,9 +195,9 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		ret = "Service Unavailable"
+		log.Println("Healthz returning ", ret)
 	}
 
-	log.Print("Healthz returning ", ret)
 	w.Write(([]byte)(ret))
 }
 
