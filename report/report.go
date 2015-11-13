@@ -54,6 +54,15 @@ func (r *Recorder) GetGuage(name string) Guage {
 	return metrics.GetOrRegisterGauge(name, r)
 }
 
+func (r *Recorder) RegisterGuageValue(name string, reportEvery time.Duration, get func() float64) {
+	g := metrics.GetOrRegisterGaugeFloat64(name, r)
+	go func() {
+		for _ = range time.Tick(reportEvery) {
+			g.Update(get())
+		}
+	}()
+}
+
 type ClearableTimer struct {
 	metrics.Timer
 	h metrics.Histogram
