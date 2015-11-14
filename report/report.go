@@ -24,6 +24,10 @@ type Timer interface {
 	metrics.Timer
 }
 
+type Histogram interface {
+	metrics.Histogram
+}
+
 func Flag() *string {
 	return flag.String("graphite", "", "graphite server/prefix for reporting collected metrics")
 }
@@ -74,12 +78,20 @@ func (c *ClearableTimer) Clear() {
 
 func (r *Recorder) makeTimer() metrics.Timer {
 	if r.graphite != nil {
-		h := metrics.NewHistogram(metrics.NewUniformSample(1000 * 30))
+		h := r.makeHistogram()
 		t := metrics.NewCustomTimer(h, metrics.NewMeter())
 		return &ClearableTimer{t, h}
 	} else {
 		return metrics.NewTimer()
 	}
+}
+
+func (r *Recorder) makeHistogram() metrics.Histogram {
+	return metrics.NewHistogram(metrics.NewUniformSample(1000 * 30))
+}
+
+func (r *Recorder) GetHistogram(name string) Histogram {
+	return r.GetOrRegister(name, r.makeHistogram).(Histogram)
 }
 
 func (r *Recorder) GetTimer(name string) Timer {
