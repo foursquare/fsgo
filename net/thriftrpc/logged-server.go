@@ -61,7 +61,6 @@ func (p LoggedProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, e
 	}
 
 	if p.stats != nil {
-
 		p.stats.Inc("rpc.error.unknown_function." + name)
 	}
 
@@ -70,5 +69,5 @@ func (p LoggedProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, e
 	oprot.WriteMessageEnd()
 	oprot.Flush()
 
-	return false, e
+	return true, e
 }
