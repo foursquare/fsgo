@@ -1,4 +1,4 @@
-package httpthrift
+package thriftrpc
 
 import (
 	"io"
