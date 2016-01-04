@@ -39,9 +39,12 @@ type Adminz struct {
 	healthy func() bool
 
 	sync.Mutex
+
+	// the various handlers are attached to serveMux or DefaultServeMux
+	mux *http.ServeMux
 }
 
-// Creates a new Adminz "builder". Not safe to use until Build() is called.
+// Creates a new Adminz "builder". Not safe to use until Start() is called.
 func New() *Adminz {
 	return &Adminz{}
 }
@@ -60,6 +63,11 @@ func (a *Adminz) doResume() {
 		}
 		a.running = true
 	}
+}
+
+func (a *Adminz) ServeMux(mux *http.ServeMux) *Adminz {
+	a.mux = mux
+	return a
 }
 
 // Resume is called when the server is unkilled
@@ -118,12 +126,18 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 	return a
 }
 
-// Build initializes handlers and starts killfile checking. Make sure to
+// Start initializes handlers and starts killfile checking. Make sure to
 // remember to call this!
 func (a *Adminz) Start() *Adminz {
-	http.HandleFunc("/healthz", a.healthzHandler)
-	http.HandleFunc("/servicez", a.ServicezHandler)
-	http.HandleFunc("/gc", a.gcHandler)
+	if a.mux != nil {
+		a.mux.HandleFunc("/healthz", a.healthzHandler)
+		a.mux.HandleFunc("/servicez", a.ServicezHandler)
+		a.mux.HandleFunc("/gc", a.gcHandler)
+	} else {
+		http.HandleFunc("/healthz", a.healthzHandler)
+		http.HandleFunc("/servicez", a.ServicezHandler)
+		http.HandleFunc("/gc", a.gcHandler)
+	}
 
 	log.Print("adminz registered")
 
@@ -144,6 +158,7 @@ func (a *Adminz) Start() *Adminz {
 	return a
 }
 
+// Stops killfile checking
 func (a *Adminz) Stop() {
 	if a.killfileTicker != nil {
 		a.killfileTicker.Stop()
