@@ -230,7 +230,7 @@ func (a *Adminz) ServicezHandler(w http.ResponseWriter, r *http.Request) {
 
 	bytes, err := json.Marshal(data)
 	if err == nil {
-		w.Header().Add("Content-Type", "text/json")
+		w.Header().Add("Content-Type", "application/json")
 		// TODO I probably need to serialize reads to servicez as who knows what
 		// people will put in that function
 		w.Write(bytes)
