@@ -214,7 +214,7 @@ func (a *Adminz) healthzHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		ret = "Service Unavailable"
-		log.Println("Healthz returning ", ret)
+		log.Println("Unhealthy, returning ", ret)
 	}
 
 	w.Write(([]byte)(ret))
@@ -244,10 +244,14 @@ func (a *Adminz) ServicezHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Adminz) quitHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("quitquitquit called! Pausing service")
+	a.Stop()
 	a.Pause()
 }
 
 func (a *Adminz) abortHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("abortabortabort called! Pausing service")
+	a.Stop()
 	a.Pause()
 }
 
