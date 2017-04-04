@@ -244,15 +244,15 @@ func (a *Adminz) ServicezHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Adminz) quitHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("quitquitquit called! Pausing service")
+	log.Println("quitquitquit called! Pausing and shutting down service")
 	a.Stop()
 	a.Pause()
+	os.Exit(0)
 }
 
 func (a *Adminz) abortHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("abortabortabort called! Pausing service")
-	a.Stop()
-	a.Pause()
+	log.Println("abortabortabort called! Shutting down service")
+	os.Exit(0)
 }
 
 func (a *Adminz) gcHandler(w http.ResponseWriter, r *http.Request) {
