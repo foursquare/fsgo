@@ -132,10 +132,14 @@ func (a *Adminz) Start() *Adminz {
 	if a.mux != nil {
 		a.mux.HandleFunc("/healthz", a.healthzHandler)
 		a.mux.HandleFunc("/servicez", a.ServicezHandler)
+		a.mux.HandleFunc("/quitquitquit", a.quitHandler)
+		a.mux.HandleFunc("/abortabortabort", a.abortHandler)
 		a.mux.HandleFunc("/gc", a.gcHandler)
 	} else {
 		http.HandleFunc("/healthz", a.healthzHandler)
 		http.HandleFunc("/servicez", a.ServicezHandler)
+		http.HandleFunc("/quitquitquit", a.quitHandler)
+		http.HandleFunc("/abortabortabort", a.abortHandler)
 		http.HandleFunc("/gc", a.gcHandler)
 	}
 
@@ -237,6 +241,14 @@ func (a *Adminz) ServicezHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, err.Error(), 500)
 	}
+}
+
+func (a *Adminz) quitHandler(w http.ResponseWriter, r *http.Request) {
+	a.Pause()
+}
+
+func (a *Adminz) abortHandler(w http.ResponseWriter, r *http.Request) {
+	a.Pause()
 }
 
 func (a *Adminz) gcHandler(w http.ResponseWriter, r *http.Request) {
