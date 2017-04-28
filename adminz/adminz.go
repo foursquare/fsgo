@@ -131,12 +131,14 @@ func (a *Adminz) KillfileInterval(interval time.Duration) *Adminz {
 func (a *Adminz) Start() *Adminz {
 	if a.mux != nil {
 		a.mux.HandleFunc("/healthz", a.healthzHandler)
+		a.mux.HandleFunc("/health", a.healthzHandler)
 		a.mux.HandleFunc("/servicez", a.ServicezHandler)
 		a.mux.HandleFunc("/quitquitquit", a.quitHandler)
 		a.mux.HandleFunc("/abortabortabort", a.abortHandler)
 		a.mux.HandleFunc("/gc", a.gcHandler)
 	} else {
 		http.HandleFunc("/healthz", a.healthzHandler)
+		http.HandleFunc("/health", a.healthzHandler)
 		http.HandleFunc("/servicez", a.ServicezHandler)
 		http.HandleFunc("/quitquitquit", a.quitHandler)
 		http.HandleFunc("/abortabortabort", a.abortHandler)
