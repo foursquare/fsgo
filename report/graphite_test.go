@@ -19,17 +19,20 @@ func floatEquals(a, b float64) bool {
 func NewTestServer(t *testing.T, prefix string) (map[string]float64, net.Listener, *Recorder, *sync.WaitGroup) {
 	res := make(map[string]float64)
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", ":0")
 	if err != nil {
 		t.Fatal("could not start dummy server:", err)
 	}
 
 	var wg sync.WaitGroup
+	t.Log("test")
 	go func() {
+		t.Log("test")
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				t.Fatal("dummy server error:", err)
+				t.Log("listener failed: ", err)
+				return
 			}
 			r := bufio.NewReader(conn)
 			line, err := r.ReadString('\n')
@@ -125,7 +128,7 @@ func TestOstrichWrites(t *testing.T) {
 	wg.Add(1)
 	r.Format = OstrichFormats
 	if testing.Verbose() {
-		t.Log("Sening ostrich format to graphite..")
+		t.Log("Sending ostrich format to graphite..")
 	}
 	r.sendToGraphite()
 	wg.Wait()
@@ -152,7 +155,7 @@ func TestOstrichWrites(t *testing.T) {
 
 	wg.Add(1)
 	if testing.Verbose() {
-		t.Log("Sening recently cleared metrics to graphite...")
+		t.Log("Sending recently cleared metrics to graphite...")
 	}
 	r.sendToGraphite()
 	wg.Wait()
