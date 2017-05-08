@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/foursquare/curator.go"
+	"github.com/curator-go/curator"
 )
 
 type ServiceDiscovery struct {
