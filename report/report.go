@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/foursquare/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 type Meter interface {

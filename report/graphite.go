@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/foursquare/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 func (r *Recorder) exporter() {
