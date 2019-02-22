@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.8
+  - 1.10.5
 sudo: false
 before_install:
   - mkdir -p $HOME/zk/contrib/fatjar
