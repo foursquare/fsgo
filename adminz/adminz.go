@@ -190,6 +190,9 @@ func (a *Adminz) checkKillfiles() bool {
 			file.Close()
 			if a.Pause() {
 				log.Println("paused due to ", killfile)
+			} else {
+				//a.Pause() == false because a.running == false
+				log.Println("continue pause due to ", killfile)
 			}
 			return true
 		}
